@@ -187,7 +187,7 @@ app.post('/api/info', async (req, res) => {
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',
-    '--ffmpeg-location', FFMPEG_DIR,
+    '--ffmpeg-location', FFMPEG_PATH,
     url
   ];
 
@@ -284,8 +284,8 @@ app.post('/api/download', (req, res) => {
     '--no-warnings',
     '--no-check-certificates',
     '--no-abort-on-error',
-    '--ffmpeg-location', FFMPEG_DIR,
-    '--extractor-args', 'youtube:player_client=android,ios,mweb,web',
+    '--ffmpeg-location', FFMPEG_PATH,
+    '--extractor-args', 'youtube:player_client=android,web',
     '-o', outputTemplate
   ];
 
@@ -293,29 +293,25 @@ app.post('/api/download', (req, res) => {
     args.push(
       '-x',
       '--audio-format', 'mp3',
-      '--audio-quality', '0',
-      '--embed-thumbnail',
-      '--embed-metadata'
+      '--audio-quality', '0'
     );
   } else {
     // Video format selection with resilient fallbacks
-    let formatArg = 'bestvideo+bestaudio/best';
-    if (quality === '4K') formatArg = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/bestvideo+bestaudio/best';
-    else if (quality === '1440p') formatArg = 'bestvideo[height<=1440]+bestaudio/best[height<=1440]/bestvideo+bestaudio/best';
-    else if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best';
-    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best';
-    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best[height<=480]/bestvideo+bestaudio/best';
+    let formatArg = 'bv*+ba/b';
+    if (quality === '4K') formatArg = 'bv*[height<=?2160]+ba/b[height<=?2160]/bv*+ba/b';
+    else if (quality === '1440p') formatArg = 'bv*[height<=?1440]+ba/b[height<=?1440]/bv*+ba/b';
+    else if (quality === '1080p') formatArg = 'bv*[height<=?1080]+ba/b[height<=?1080]/bv*+ba/b';
+    else if (quality === '720p') formatArg = 'bv*[height<=?720]+ba/b[height<=?720]/bv*+ba/b';
+    else if (quality === '480p') formatArg = 'bv*[height<=?480]+ba/b[height<=?480]/bv*+ba/b';
 
     args.push(
       '-f', formatArg,
-      '--merge-output-format', 'mp4',
-      '--embed-thumbnail',
-      '--embed-metadata'
+      '--merge-output-format', 'mp4'
     );
   }
 
   if (getSubtitles) {
-    args.push('--write-subs', '--sub-lang', 'en,hi', '--embed-subs');
+    args.push('--write-subs', '--sub-lang', 'en,hi');
   }
 
   args.push(url);
@@ -348,18 +344,33 @@ app.post('/api/download', (req, res) => {
       task.status = 'downloading';
       broadcastProgress(taskId, task);
     } else if (text.includes('[Merger]') || text.includes('[ExtractAudio]')) {
+      const mergeMatch = text.match(/Merging formats into ["']?([^"'\r\n]+)["']?/);
+      if (mergeMatch) {
+        task.filename = path.basename(mergeMatch[1]);
+        task.filePath = mergeMatch[1];
+      }
+      task.status = 'processing';
+      task.percent = 98;
+      broadcastProgress(taskId, task);
+    } else if (text.includes('[ExtractAudio] Destination:')) {
+      const fn = text.split('[ExtractAudio] Destination:')[1].trim().split('\n')[0].trim();
+      task.filename = path.basename(fn);
+      task.filePath = fn;
       task.status = 'processing';
       task.percent = 98;
       broadcastProgress(taskId, task);
     } else if (text.includes('[download] Destination:')) {
-      const fn = text.split('[download] Destination:')[1].trim();
+      const fn = text.split('[download] Destination:')[1].trim().split('\n')[0].trim();
       task.filename = path.basename(fn);
       task.filePath = fn;
     }
   });
 
+  let stderrBuffer = '';
   proc.stderr.on('data', (chunk) => {
-    console.warn('yt-dlp stderr:', chunk.toString());
+    const text = chunk.toString();
+    stderrBuffer += text;
+    console.warn('yt-dlp stderr:', text);
   });
 
   proc.on('close', (code) => {
@@ -402,7 +413,17 @@ app.post('/api/download', (req, res) => {
       broadcastProgress(taskId, task);
     } else {
       task.status = 'error';
-      task.error = 'Download failed. Check the video link or restrictions.';
+      let errDetail = 'Download failed. Check the video link or restrictions.';
+      if (stderrBuffer) {
+        const lines = stderrBuffer.split('\n').map(l => l.trim()).filter(Boolean);
+        const errorLine = lines.filter(l => l.toLowerCase().includes('error:')).pop();
+        if (errorLine) {
+          errDetail = errorLine.replace(/^ERROR:\s*/i, '').trim();
+        } else if (lines.length > 0) {
+          errDetail = lines[lines.length - 1];
+        }
+      }
+      task.error = errDetail;
       broadcastProgress(taskId, task);
     }
   });
