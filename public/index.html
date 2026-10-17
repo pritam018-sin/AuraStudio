@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Media Studio - 4K Video & Audio Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="/logo.png">
+</head>
+<body class="theme-aurora">
+  <!-- Glowing Dynamic Ambient Orbs -->
+  <div class="ambient-glows">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="cyber-grid"></div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand">
+        <img src="/logo.png" alt="AURA STUDIO Logo" class="brand-logo-img">
+        <div class="brand-text">
+          <h1>AURA <span>STUDIO</span></h1>
+          <p class="brand-sub">Universal 4K Media & Reel Downloader</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <nav class="top-nav">
+          <button class="nav-btn active" id="navBtnStudio" title="Downloader Studio">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Downloader</span>
+          </button>
+          <button class="nav-btn" id="navBtnAbout" title="About Pritam Singh & Engineering">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>About</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+      <!-- Tab 1: Studio / Downloader View -->
+      <div id="viewStudio" class="tab-view active">
+      <!-- Input Search Section -->
+      <section class="search-section">
+        <div class="glass-card omni-card">
+          <div class="url-input-wrap">
+            <div class="link-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            </div>
+            <input type="text" id="urlInput" placeholder="Paste YouTube, Instagram Reel, Twitter/X, or TikTok link here..." autocomplete="off">
+            <button class="paste-btn" id="btnPaste" title="Paste from clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+              <span>Paste</span>
+            </button>
+            <button class="primary-btn glow" id="btnFetch">
+              <span class="btn-text">Analyze Media</span>
+              <div class="btn-spinner" id="fetchSpinner"></div>
+            </button>
+          </div>
+
+          <!-- Platform Support Pills -->
+          <div class="supported-platforms">
+            <span class="plat-label">Supported:</span>
+            <span class="plat-pill">YouTube (4K/60fps)</span>
+            <span class="plat-pill">Instagram Reels</span>
+            <span class="plat-pill">Twitter / X</span>
+            <span class="plat-pill">TikTok</span>
+            <span class="plat-pill">Reddit Videos</span>
+            <span class="plat-pill">SoundCloud MP3</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Error Toast / Notice -->
+      <div class="alert-box" id="errorBox" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span id="errorMessage">Something went wrong</span>
+      </div>
+
+      <!-- Media Preview & Format Picker (Hidden by default) -->
+      <section class="preview-section" id="previewSection" style="display: none;">
+        <div class="glass-card preview-card">
+          <div class="preview-grid">
+            <!-- Left: Media Thumbnail & Info -->
+            <div class="thumbnail-col">
+              <div class="thumb-wrap">
+                <img id="mediaThumb" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='%23000'/>" alt="Thumbnail">
+                <span class="duration-badge" id="mediaDuration">0:00</span>
+                <span class="platform-badge" id="mediaPlatform">YouTube</span>
+              </div>
+              <h3 class="media-title" id="mediaTitle">Video Title</h3>
+              <div class="media-meta">
+                <span class="uploader-name" id="mediaUploader">Channel</span>
+                <span class="meta-dot">•</span>
+                <span class="views-count" id="mediaViews">0 views</span>
+              </div>
+            </div>
+
+            <!-- Right: Download Controls -->
+            <div class="options-col">
+              <div class="format-tabs">
+                <button class="tab-btn active" data-type="video" id="tabVideo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                  <span>Video (MP4)</span>
+                </button>
+                <button class="tab-btn" data-type="audio" id="tabAudio">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                  <span>Audio (MP3 320k)</span>
+                </button>
+              </div>
+
+              <!-- Quality Selector for Video -->
+              <div class="quality-selector-wrap" id="qualityWrap">
+                <label class="setting-title">Select Video Resolution:</label>
+                <div class="quality-pills" id="qualityPills">
+                  <button class="q-pill" data-quality="4K" id="q4k">4K (2160p)</button>
+                  <button class="q-pill active" data-quality="1080p" id="q1080">1080p FHD</button>
+                  <button class="q-pill" data-quality="720p" id="q720">720p HD</button>
+                  <button class="q-pill" data-quality="480p" id="q480">480p</button>
+                </div>
+              </div>
+
+              <!-- Extra Options Checkbox -->
+              <div class="extra-options">
+                <label class="checkbox-label" id="subsOptionWrap">
+                  <input type="checkbox" id="checkSubs">
+                  <span class="custom-check"></span>
+                  <span>Auto-Embed Subtitles (Captions)</span>
+                </label>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="action-row">
+                <button class="primary-btn glow lg" id="btnStartDownload">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span id="downloadBtnText">Download MP4 (1080p)</span>
+                </button>
+
+                <button class="ai-summary-btn" id="btnSummarize" title="AI Video Summary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+                  <span>AI Summary</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Active Download Progress Card -->
+      <section class="progress-section" id="progressSection" style="display: none;">
+        <div class="glass-card active-download-card">
+          <div class="download-header">
+            <div class="dl-status-title">
+              <span class="pulsing-dot" id="dlPulse"></span>
+              <span class="status-name" id="dlStatusText">Downloading...</span>
+            </div>
+            <div class="dl-stats">
+              <span id="dlSpeed">0.0 MB/s</span>
+              <span class="stat-sep">•</span>
+              <span id="dlEta">ETA: 00:00</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressFill" style="width: 0%;"></div>
+          </div>
+
+          <div class="progress-footer">
+            <span class="progress-percent" id="dlPercent">0%</span>
+            <div class="dl-completed-actions" id="dlActions" style="display: none;">
+              <button class="primary-btn glow" id="btnSaveFile">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Save File to PC</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Downloads History Section -->
+      <section class="history-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Downloads History</h2>
+            <span class="auto-clean-badge" title="Auto-cleans browser history list after 1 hour so your list doesn't get cluttered. Downloaded videos and audio files stay 100% safe on your PC/phone forever.">⏳ Auto-cleans list after 1 hr (Files safe on PC)</span>
+          </div>
+          <div class="history-controls">
+            <button class="refresh-btn" id="btnRefreshHistory" title="Refresh list">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="history-grid" id="historyGrid">
+          <!-- Dynamically populated -->
+          <div class="empty-state" id="emptyHistory">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <p>No downloads yet. Paste a link above to get started!</p>
+          </div>
+        </div>
+      </section>
+      </div><!-- End viewStudio -->
+
+      <!-- Tab 2: About View (Replaces Downloader Screen on Same Page) -->
+      <div id="viewAbout" class="tab-view" style="display: none;">
+        <div class="about-view-wrap">
+          <!-- Back button bar -->
+          <div class="view-back-bar">
+            <button class="back-nav-btn" id="btnBackToStudio">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              <span>Back to Downloader</span>
+            </button>
+          </div>
+
+          <!-- Creator Profile Card -->
+          <div class="creator-profile-card">
+            <div class="creator-avatar-wrap">
+              <div class="creator-photo-frame">
+                <img src="/pritam-singh.png" alt="Pritam Singh - Lead Systems Architect & Designer" class="creator-img">
+              </div>
+              <div class="status-indicator-ring" title="Lead Architect & Designer Verified"></div>
+            </div>
+            <div class="creator-meta">
+              <div class="creator-name-row">
+                <h2 class="creator-name">Pritam Singh</h2>
+                <div class="role-badges-group">
+                  <span class="role-badge cyan">Lead Systems Architect</span>
+                  <span class="role-badge purple">Senior Full-Stack Developer</span>
+                  <span class="role-badge pink">Product & UI/UX Designer</span>
+                </div>
+              </div>
+              <p class="creator-quote">
+                "Aura Studio was engineered and designed from the ground up to redefine media retrieval on the modern web. I built this workstation to eliminate intrusive advertising, misleading redirect scripts, and slow, bloated converters—delivering an enterprise-grade, high-throughput pipeline paired with an uncompromising Cyber-Aurora aesthetic."
+              </p>
+              <div class="creator-highlights">
+                <div class="highlight-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>100% Custom Engineering</span>
+                </div>
+                <div class="highlight-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  <span>Zero Bloat & Zero Trackers</span>
+                </div>
+                <div class="highlight-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  <span>Bespoke Design System</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- How This Project Was Engineered -->
+          <div class="glass-card engineering-card">
+            <h3 class="info-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+              <span>How This Project Was Engineered</span>
+            </h3>
+            <p class="eng-lead-text">
+              Designed from first principles as a high-throughput, asynchronous media processing workstation. Every layer of the stack was hand-crafted to balance compute efficiency with an uncompromising user experience:
+            </p>
+
+            <div class="eng-grid">
+              <div class="eng-card">
+                <div class="eng-icon">⚡</div>
+                <h4>Asynchronous Stream Ingestion</h4>
+                <p>Decoupled Node.js microservice architecture with non-blocking child process supervisors, handling high-bitrate media parsing without locking the main event loop.</p>
+              </div>
+
+              <div class="eng-card">
+                <div class="eng-icon">🎛️</div>
+                <h4>Dynamic FFmpeg Muxing Pipeline</h4>
+                <p>Precision multi-stream muxing engine that dynamically captures adaptive 4K video streams (VP9/AV1/H.264) and high-fidelity audio (Opus/AAC 320k) and re-packages them seamlessly into standard MP4/MP3 containers.</p>
+              </div>
+
+              <div class="eng-card">
+                <div class="eng-icon">📡</div>
+                <h4>Reactive SSE Telemetry Protocol</h4>
+                <p>Sub-millisecond Server-Sent Events (SSE) pipe pushing frame-accurate progress, instantaneous network transfer speeds (MB/s), and real-time ETA estimates directly to the interface.</p>
+              </div>
+
+              <div class="eng-card">
+                <div class="eng-icon">🎨</div>
+                <h4>Cyber-Aurora Design System</h4>
+                <p>Hand-tuned CSS design token system leveraging glassmorphic backdrops, ambient gradient blurs, custom typography, and zero-dependency micro-animations for responsive, 60fps rendering.</p>
+              </div>
+            </div>
+
+            <div class="tech-stack-row">
+              <span class="tech-pill">Node.js Engine</span>
+              <span class="tech-pill">Express REST APIs</span>
+              <span class="tech-pill">FFmpeg Multi-Core Muxer</span>
+              <span class="tech-pill">yt-dlp Core Engine</span>
+              <span class="tech-pill">Server-Sent Events (SSE)</span>
+              <span class="tech-pill">Vanilla ES6+ Architecture</span>
+              <span class="tech-pill">Cyber-Aurora Design System</span>
+            </div>
+          </div>
+
+          <!-- Architecture & Flow Pipeline -->
+          <div class="glass-card arch-card">
+            <h3 class="arch-title">High-Level Data Flow & Processing Pipeline</h3>
+            <div class="arch-steps">
+              <div class="arch-step">
+                <div class="step-num">01</div>
+                <div class="step-body">
+                  <h5>URL Ingestion & Sanitization</h5>
+                  <p>Client validates and passes URL to <code>POST /api/info</code>. The engine parses cryptographic stream manifests without invoking heavyweight browser engines.</p>
+                </div>
+              </div>
+              <div class="arch-step">
+                <div class="step-num">02</div>
+                <div class="step-body">
+                  <h5>Adaptive Format Negotiation</h5>
+                  <p>Backend queries adaptive DASH and HLS playlists, intelligently selecting optimal video/audio stream pairs matching the user's resolution selection.</p>
+                </div>
+              </div>
+              <div class="arch-step">
+                <div class="step-num">03</div>
+                <div class="step-body">
+                  <h5>Parallel Extraction & FFmpeg Muxing</h5>
+                  <p>Downloader coordinates multi-threaded stream ingestion, feeding video and audio pipes directly into an embedded FFmpeg muxer with zero generational quality loss.</p>
+                </div>
+              </div>
+              <div class="arch-step">
+                <div class="step-num">04</div>
+                <div class="step-body">
+                  <h5>Live Telemetry & Direct Client Save</h5>
+                  <p>SSE connection (<code>/api/progress/:taskId</code>) streams real-time telemetry. On completion, the binary stream is dispatched via native browser download directly to client storage.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="perf-metric-strip">
+              <div class="metric-item">
+                <span class="metric-val">&lt; 1.2s</span>
+                <span class="metric-label">Metadata Resolve</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-val">320k</span>
+                <span class="metric-label">Audio Fidelity</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-val">0</span>
+                <span class="metric-label">Third-Party Trackers</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-val">100%</span>
+                <span class="metric-label">Local Device Privacy</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- AI Video Summary Modal -->
+    <div class="modal-backdrop" id="summaryModal">
+      <div class="glass-modal">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="ai-sparkle-dot"></div>
+            <h3>AI Video Summary & Key Highlights</h3>
+          </div>
+          <button class="modal-close" id="btnCloseSummary">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="summary-loading" id="summaryLoading" style="display: none;">
+            <div class="spinner-large"></div>
+            <p>Extracting subtitles and generating key highlights...</p>
+          </div>
+          <div class="summary-content" id="summaryContent">
+            <!-- Summary bullet points rendered here -->
+          </div>
+          <div class="transcript-preview" id="transcriptPreview" style="display: none;">
+            <h4>Raw Spoken Transcript</h4>
+            <pre id="transcriptText"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Local binary executables (auto-downloaded via setup.js)
+bin/*.exe
+
+# Downloaded user media
+downloads/
+!downloads/.gitkeep
+
+# Temporary history & logs
+downloads-history.json
+logo
+*.log
+.DS_Store
+Thumbs.db
