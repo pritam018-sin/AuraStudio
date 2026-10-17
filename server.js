@@ -104,7 +104,7 @@ app.post('/api/info', (req, res) => {
 
     try {
       const data = JSON.parse(stdout);
-      
+
       // Determine available qualities
       const formats = data.formats || [];
       const has4K = formats.some(f => f.height >= 2160);
@@ -460,8 +460,8 @@ function generateQuickSummary(text) {
   // Simple heuristic sentence extraction for key insights
   const sentences = text.split(/(?<=[.?!])\s+/).filter(s => s.length > 25);
   const highlights = sentences.slice(0, Math.min(5, sentences.length));
-  
-  return highlights.length > 0 
+
+  return highlights.length > 0
     ? highlights.map((h, i) => `• ${h.trim()}`).join('\n\n')
     : 'Video transcript extracted successfully. Contains discussion of the video topics above.';
 }

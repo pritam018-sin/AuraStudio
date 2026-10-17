@@ -1574,3 +1574,226 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* ============================================================
+   📱 RESPONSIVE DESIGN FOR MOBILE & TABLETS (360px - 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .app-layout {
+    padding: 20px 14px 60px;
+  }
+
+  .preview-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .quality-pills {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .q-pill {
+    padding: 10px 14px;
+    font-size: 0.84rem;
+  }
+
+  .action-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .action-row button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Header & Navigation */
+  .top-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .brand {
+    justify-content: flex-start;
+  }
+
+  .brand-text h1 {
+    font-size: 1.4rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .top-nav {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .top-nav .nav-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 9px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* Search Omni-Input Bar */
+  .url-input-wrap {
+    flex-wrap: wrap;
+    padding: 8px;
+    gap: 8px;
+    border-radius: var(--radius-md);
+  }
+
+  .link-icon {
+    display: none;
+  }
+
+  #urlInput {
+    width: 100%;
+    font-size: 0.86rem;
+    padding: 12px 14px;
+    order: 1;
+  }
+
+  .paste-btn {
+    order: 2;
+    flex: 1;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+  }
+
+  #btnFetch {
+    order: 3;
+    flex: 2;
+    justify-content: center;
+    padding: 11px 18px;
+    font-size: 0.88rem;
+  }
+
+  .supported-tags {
+    gap: 6px;
+  }
+
+  .tag-pill {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+
+  /* Glass Cards */
+  .glass-card {
+    padding: 18px 14px;
+    margin-bottom: 18px;
+    border-radius: var(--radius-md);
+  }
+
+  /* Section Header */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .section-title-wrap {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .section-title-wrap h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Creator Profile Card - Mobile Centered Layout */
+  .creator-profile-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 16px;
+    gap: 20px;
+  }
+
+  .creator-photo-frame {
+    width: 116px;
+    height: 116px;
+    border-radius: 22px;
+  }
+
+  .creator-img {
+    border-radius: 19px;
+  }
+
+  .creator-name-row {
+    align-items: center;
+    text-align: center;
+  }
+
+  .creator-name {
+    font-size: 1.4rem;
+    text-align: center;
+  }
+
+  .role-badges-group {
+    justify-content: center;
+  }
+
+  .role-badge {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+
+  .creator-quote {
+    text-align: center;
+    border-left: none;
+    border-top: 2px solid rgba(0, 240, 255, 0.4);
+    padding-left: 0;
+    padding-top: 14px;
+    font-size: 0.84rem;
+    line-height: 1.6;
+  }
+
+  .creator-highlights {
+    justify-content: center;
+  }
+
+  /* Engineering Grid & Architecture */
+  .eng-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .arch-step {
+    padding: 12px 14px;
+  }
+
+  .perf-metric-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .metric-val {
+    font-size: 1.05rem;
+  }
+
+  .view-back-bar {
+    margin-bottom: 16px;
+  }
+
+  .back-nav-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 16px;
+  }
+}

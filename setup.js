@@ -38,7 +38,7 @@ try {
 if (!fs.existsSync(YTDLP_PATH)) {
   console.log('⬇️ Downloading standalone yt-dlp.exe binary...');
   const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe';
-  
+
   function download(targetUrl) {
     https.get(targetUrl, (res) => {
       // Follow redirects
