@@ -90,7 +90,7 @@ async function setupYtDlp() {
 
   const downloadUrl = isWin
     ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
-    : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+    : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
 
   console.log(`⬇️ Downloading standalone yt-dlp (${process.platform}) from GitHub releases...`);
   try {

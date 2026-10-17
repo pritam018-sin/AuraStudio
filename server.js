@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const { spawn, exec } = require('child_process');
 
 const app = express();
@@ -38,14 +39,83 @@ try {
 } catch (e) {}
 
 // Ensure execute permissions on Linux/Unix
-if (!isWin) {
-  if (fs.existsSync(YTDLP_PATH)) {
-    try { fs.chmodSync(YTDLP_PATH, 0o755); } catch (e) {}
-  }
-  if (fs.existsSync(FFMPEG_PATH)) {
-    try { fs.chmodSync(FFMPEG_PATH, 0o755); } catch (e) {}
+function fixBinaryPermissions() {
+  if (!isWin) {
+    if (fs.existsSync(YTDLP_PATH)) {
+      try { fs.chmodSync(YTDLP_PATH, 0o755); } catch (e) {}
+    }
+    if (fs.existsSync(FFMPEG_PATH)) {
+      try { fs.chmodSync(FFMPEG_PATH, 0o755); } catch (e) {}
+    }
   }
 }
+fixBinaryPermissions();
+
+// Auto-download yt-dlp standalone if missing
+async function ensureYtDlp() {
+  if (fs.existsSync(YTDLP_PATH)) {
+    try {
+      const stats = fs.statSync(YTDLP_PATH);
+      if (stats.size > 2000000) {
+        fixBinaryPermissions();
+        return;
+      }
+    } catch (e) {}
+  }
+
+  const downloadUrl = isWin
+    ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
+    : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
+
+  console.log(`⬇️ Auto-downloading standalone yt-dlp for ${process.platform}...`);
+  return new Promise((resolve) => {
+    function get(targetUrl) {
+      https.get(targetUrl, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return get(res.headers.location);
+        }
+        if (res.statusCode !== 200) {
+          console.warn('⚠️ yt-dlp auto-download HTTP status:', res.statusCode);
+          return resolve();
+        }
+        const fileStream = fs.createWriteStream(YTDLP_PATH);
+        res.pipe(fileStream);
+        fileStream.on('finish', () => {
+          fileStream.close(() => {
+            fixBinaryPermissions();
+            console.log('✅ yt-dlp binary ready at:', YTDLP_PATH);
+            resolve();
+          });
+        });
+        fileStream.on('error', (err) => {
+          console.warn('⚠️ File stream error:', err.message);
+          resolve();
+        });
+      }).on('error', (err) => {
+        console.warn('⚠️ Download request error:', err.message);
+        resolve();
+      });
+    }
+    get(downloadUrl);
+  });
+}
+ensureYtDlp().catch(() => {});
+
+// Diagnostic status endpoint
+app.get('/api/status', (req, res) => {
+  const ytdlpExists = fs.existsSync(YTDLP_PATH);
+  const ffmpegExists = fs.existsSync(FFMPEG_PATH);
+  let ytdlpSize = 0;
+  if (ytdlpExists) {
+    try { ytdlpSize = fs.statSync(YTDLP_PATH).size; } catch (e) {}
+  }
+  res.json({
+    status: 'ok',
+    platform: process.platform,
+    ytdlp: { exists: ytdlpExists, path: YTDLP_PATH, size: ytdlpSize },
+    ffmpeg: { exists: ffmpegExists, path: FFMPEG_PATH, dir: path.dirname(FFMPEG_PATH) }
+  });
+});
 
 const FFMPEG_DIR = path.dirname(FFMPEG_PATH);
 const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
@@ -105,14 +175,19 @@ function saveHistoryItem(item) {
 }
 
 // 1. Fetch Metadata / Info
-app.post('/api/info', (req, res) => {
+app.post('/api/info', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL is required' });
+
+  await ensureYtDlp();
 
   const args = [
     '--dump-single-json',
     '--no-playlist',
     '--no-warnings',
+    '--no-check-certificates',
+    '--prefer-free-formats',
+    '--extractor-args', 'youtube:player_client=android,ios,mweb,web',
     '--ffmpeg-location', FFMPEG_DIR,
     url
   ];
@@ -129,10 +204,18 @@ app.post('/api/info', (req, res) => {
     stderr += data.toString();
   });
 
+  proc.on('error', (err) => {
+    console.error('yt-dlp spawn error:', err);
+    return res.status(500).json({ error: `Downloader process error: ${err.message}` });
+  });
+
   proc.on('close', (code) => {
     if (code !== 0) {
       console.error('yt-dlp error:', stderr);
-      return res.status(500).json({ error: 'Failed to extract video info. Verify the URL is valid and public.' });
+      return res.status(500).json({
+        error: 'Failed to extract video info. Verify the URL is valid and public.',
+        details: stderr ? stderr.slice(-300).trim() : 'Exited with code ' + code
+      });
     }
 
     try {
@@ -200,9 +283,10 @@ app.post('/api/download', (req, res) => {
     '--newline',
     '--no-playlist',
     '--no-warnings',
+    '--no-check-certificates',
     '--no-abort-on-error',
     '--ffmpeg-location', FFMPEG_DIR,
-    '--extractor-args', 'youtube:player_client=android,web',
+    '--extractor-args', 'youtube:player_client=android,ios,mweb,web',
     '-o', outputTemplate
   ];
 
@@ -239,6 +323,16 @@ app.post('/api/download', (req, res) => {
 
   console.log('Running yt-dlp:', args.join(' '));
   const proc = spawn(YTDLP_PATH, args);
+
+  proc.on('error', (err) => {
+    console.error('yt-dlp download spawn error:', err);
+    const task = activeTasks.get(taskId);
+    if (task) {
+      task.status = 'error';
+      task.error = `Downloader process error: ${err.message}`;
+      broadcastProgress(taskId, task);
+    }
+  });
 
   proc.stdout.on('data', (chunk) => {
     const text = chunk.toString();
@@ -445,11 +539,18 @@ app.post('/api/summarize', (req, res) => {
     '--sub-lang', 'en,hi',
     '--sub-format', 'vtt',
     '--no-warnings',
+    '--no-check-certificates',
+    '--extractor-args', 'youtube:player_client=android,ios,mweb,web',
     '-o', path.join(subTempDir, 'sub.%(ext)s'),
     url
   ];
 
   const proc = spawn(YTDLP_PATH, args);
+
+  proc.on('error', (err) => {
+    console.error('yt-dlp summarize spawn error:', err);
+    return res.status(500).json({ error: `Downloader process error: ${err.message}` });
+  });
 
   proc.on('close', (code) => {
     try {
