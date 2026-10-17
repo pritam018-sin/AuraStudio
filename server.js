@@ -183,10 +183,10 @@ app.post('/api/info', async (req, res) => {
 
   const args = [
     '--dump-single-json',
+    '--format', 'all',
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',
-    '--extractor-args', 'youtube:player_client=android,web',
     '--ffmpeg-location', FFMPEG_DIR,
     url
   ];
