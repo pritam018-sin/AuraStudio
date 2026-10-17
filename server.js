@@ -111,7 +111,7 @@ app.get('/api/status', (req, res) => {
   }
   res.json({
     status: 'ok',
-    version: '1.0.3-cloud-ready',
+    version: '1.0.4-node-engine',
     platform: process.platform,
     ytdlp: { exists: ytdlpExists, path: YTDLP_PATH, size: ytdlpSize },
     ffmpeg: { exists: ffmpegExists, path: FFMPEG_PATH, dir: path.dirname(FFMPEG_PATH) }
@@ -188,6 +188,7 @@ app.post('/api/info', async (req, res) => {
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',
+    '--js-runtimes', 'node',
     '--ffmpeg-location', FFMPEG_PATH,
     url
   ];
@@ -285,6 +286,7 @@ app.post('/api/download', (req, res) => {
     '--no-warnings',
     '--no-check-certificates',
     '--no-abort-on-error',
+    '--js-runtimes', 'node',
     '--ffmpeg-location', FFMPEG_PATH,
     '-o', outputTemplate
   ];
@@ -297,12 +299,12 @@ app.post('/api/download', (req, res) => {
     );
   } else {
     // Video format selection with resilient fallbacks
-    let formatArg = 'bv*+ba/b';
-    if (quality === '4K') formatArg = 'bv*[height<=?2160]+ba/b[height<=?2160]/bv*+ba/best';
-    else if (quality === '1440p') formatArg = 'bv*[height<=?1440]+ba/b[height<=?1440]/bv*+ba/best';
-    else if (quality === '1080p') formatArg = 'bv*[height<=?1080]+ba/b[height<=?1080]/bv*+ba/best';
-    else if (quality === '720p') formatArg = 'bv*[height<=?720]+ba/b[height<=?720]/bv*+ba/best';
-    else if (quality === '480p') formatArg = 'bv*[height<=?480]+ba/b[height<=?480]/bv*+ba/best';
+    let formatArg = 'bestvideo+bestaudio/best';
+    if (quality === '4K') formatArg = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best';
+    else if (quality === '1440p') formatArg = 'bestvideo[height<=1440]+bestaudio/best[height<=1440]/best';
+    else if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best';
+    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best';
+    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best[height<=480]/best';
 
     args.push(
       '-f', formatArg,
