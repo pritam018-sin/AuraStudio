@@ -186,8 +186,7 @@ app.post('/api/info', async (req, res) => {
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',
-    '--prefer-free-formats',
-    '--extractor-args', 'youtube:player_client=android,ios,mweb,web',
+    '--extractor-args', 'youtube:player_client=android,web',
     '--ffmpeg-location', FFMPEG_DIR,
     url
   ];
