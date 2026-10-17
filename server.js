@@ -12,9 +12,42 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/files', express.static(path.join(__dirname, 'downloads')));
 
+// Health check endpoint for Render / monitoring
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
+// Explicit root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+const isWin = process.platform === 'win32';
 const BIN_DIR = path.join(__dirname, 'bin');
-const YTDLP_PATH = path.join(BIN_DIR, 'yt-dlp.exe');
-const FFMPEG_PATH = path.join(BIN_DIR, 'ffmpeg.exe');
+const YTDLP_NAME = isWin ? 'yt-dlp.exe' : 'yt-dlp';
+const FFMPEG_NAME = isWin ? 'ffmpeg.exe' : 'ffmpeg';
+let YTDLP_PATH = path.join(BIN_DIR, YTDLP_NAME);
+let FFMPEG_PATH = path.join(BIN_DIR, FFMPEG_NAME);
+
+// Fallback to ffmpeg-static directly if available
+try {
+  const ffmpegStatic = require('ffmpeg-static');
+  if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
+    FFMPEG_PATH = ffmpegStatic;
+  }
+} catch (e) {}
+
+// Ensure execute permissions on Linux/Unix
+if (!isWin) {
+  if (fs.existsSync(YTDLP_PATH)) {
+    try { fs.chmodSync(YTDLP_PATH, 0o755); } catch (e) {}
+  }
+  if (fs.existsSync(FFMPEG_PATH)) {
+    try { fs.chmodSync(FFMPEG_PATH, 0o755); } catch (e) {}
+  }
+}
+
+const FFMPEG_DIR = path.dirname(FFMPEG_PATH);
 const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 const HISTORY_FILE = path.join(__dirname, 'downloads-history.json');
 
@@ -80,7 +113,7 @@ app.post('/api/info', (req, res) => {
     '--dump-single-json',
     '--no-playlist',
     '--no-warnings',
-    '--ffmpeg-location', BIN_DIR,
+    '--ffmpeg-location', FFMPEG_DIR,
     url
   ];
 
@@ -168,7 +201,7 @@ app.post('/api/download', (req, res) => {
     '--no-playlist',
     '--no-warnings',
     '--no-abort-on-error',
-    '--ffmpeg-location', BIN_DIR,
+    '--ffmpeg-location', FFMPEG_DIR,
     '--extractor-args', 'youtube:player_client=android,web',
     '-o', outputTemplate
   ];
@@ -476,10 +509,11 @@ function formatDuration(sec) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n============================================================`);
   console.log(`  ⚡ AURA MEDIA STUDIO - SERVER RUNNING`);
-  console.log(`  🌐 Web App URL: http://localhost:${PORT}`);
+  console.log(`  🌐 Bound to: http://0.0.0.0:${PORT}`);
+  console.log(`  📂 Environment: ${process.env.NODE_ENV || 'production'} (${process.platform})`);
   console.log(`  📂 Downloads:   ${DOWNLOADS_DIR}`);
   console.log(`============================================================\n`);
 });
