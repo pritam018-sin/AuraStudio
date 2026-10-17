@@ -111,7 +111,7 @@ app.get('/api/status', (req, res) => {
   }
   res.json({
     status: 'ok',
-    version: '1.0.4-node-engine',
+    version: '1.0.5-stable',
     platform: process.platform,
     ytdlp: { exists: ytdlpExists, path: YTDLP_PATH, size: ytdlpSize },
     ffmpeg: { exists: ffmpegExists, path: FFMPEG_PATH, dir: path.dirname(FFMPEG_PATH) }
@@ -188,7 +188,6 @@ app.post('/api/info', async (req, res) => {
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',
-    '--js-runtimes', 'node',
     '--ffmpeg-location', FFMPEG_PATH,
     url
   ];
@@ -220,7 +219,12 @@ app.post('/api/info', async (req, res) => {
     }
 
     try {
-      const data = JSON.parse(stdout);
+      const firstBrace = stdout.indexOf('{');
+      const lastBrace = stdout.lastIndexOf('}');
+      if (firstBrace === -1 || lastBrace === -1) {
+        throw new Error('No valid JSON output from metadata extractor');
+      }
+      const data = JSON.parse(stdout.slice(firstBrace, lastBrace + 1));
 
       // Determine available qualities
       const formats = data.formats || [];
@@ -286,7 +290,7 @@ app.post('/api/download', (req, res) => {
     '--no-warnings',
     '--no-check-certificates',
     '--no-abort-on-error',
-    '--js-runtimes', 'node',
+    '--js-runtimes', `node:${process.execPath}`,
     '--ffmpeg-location', FFMPEG_PATH,
     '-o', outputTemplate
   ];
