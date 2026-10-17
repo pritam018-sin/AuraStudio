@@ -111,6 +111,7 @@ app.get('/api/status', (req, res) => {
   }
   res.json({
     status: 'ok',
+    version: '1.0.3-cloud-ready',
     platform: process.platform,
     ytdlp: { exists: ytdlpExists, path: YTDLP_PATH, size: ytdlpSize },
     ffmpeg: { exists: ffmpegExists, path: FFMPEG_PATH, dir: path.dirname(FFMPEG_PATH) }
@@ -297,11 +298,11 @@ app.post('/api/download', (req, res) => {
   } else {
     // Video format selection with resilient fallbacks
     let formatArg = 'bv*+ba/b';
-    if (quality === '4K') formatArg = 'bv*[height<=?2160]+ba/b[height<=?2160]/bv*+ba/b';
-    else if (quality === '1440p') formatArg = 'bv*[height<=?1440]+ba/b[height<=?1440]/bv*+ba/b';
-    else if (quality === '1080p') formatArg = 'bv*[height<=?1080]+ba/b[height<=?1080]/bv*+ba/b';
-    else if (quality === '720p') formatArg = 'bv*[height<=?720]+ba/b[height<=?720]/bv*+ba/b';
-    else if (quality === '480p') formatArg = 'bv*[height<=?480]+ba/b[height<=?480]/bv*+ba/b';
+    if (quality === '4K') formatArg = 'bv*[height<=?2160]+ba/b[height<=?2160]/bv*+ba/best';
+    else if (quality === '1440p') formatArg = 'bv*[height<=?1440]+ba/b[height<=?1440]/bv*+ba/best';
+    else if (quality === '1080p') formatArg = 'bv*[height<=?1080]+ba/b[height<=?1080]/bv*+ba/best';
+    else if (quality === '720p') formatArg = 'bv*[height<=?720]+ba/b[height<=?720]/bv*+ba/best';
+    else if (quality === '480p') formatArg = 'bv*[height<=?480]+ba/b[height<=?480]/bv*+ba/best';
 
     args.push(
       '-f', formatArg,
