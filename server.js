@@ -285,7 +285,6 @@ app.post('/api/download', (req, res) => {
     '--no-check-certificates',
     '--no-abort-on-error',
     '--ffmpeg-location', FFMPEG_PATH,
-    '--extractor-args', 'youtube:player_client=android,web',
     '-o', outputTemplate
   ];
 
