@@ -101,6 +101,45 @@ async function ensureYtDlp() {
 }
 ensureYtDlp().catch(() => {});
 
+const COOKIES_PATH = path.join(__dirname, 'cookies.txt');
+
+// Initialize cookies.txt from environment variable YOUTUBE_COOKIES if set
+if (process.env.YOUTUBE_COOKIES && process.env.YOUTUBE_COOKIES.trim().length > 10) {
+  try {
+    fs.writeFileSync(COOKIES_PATH, process.env.YOUTUBE_COOKIES.trim());
+    console.log('✅ Loaded YouTube cookies from YOUTUBE_COOKIES environment variable.');
+  } catch (err) {
+    console.warn('⚠️ Could not write cookies file:', err.message);
+  }
+}
+
+function getCookieArgs() {
+  if (fs.existsSync(COOKIES_PATH)) {
+    try {
+      const stats = fs.statSync(COOKIES_PATH);
+      if (stats.size > 20) {
+        return ['--cookies', COOKIES_PATH];
+      }
+    } catch (e) {}
+  }
+  return [];
+}
+
+// Upload / save YouTube cookies directly from UI
+app.post('/api/cookies', (req, res) => {
+  const { cookies } = req.body;
+  if (!cookies || typeof cookies !== 'string' || cookies.trim().length < 10) {
+    return res.status(400).json({ error: 'Valid cookies content is required' });
+  }
+  try {
+    fs.writeFileSync(COOKIES_PATH, cookies.trim());
+    console.log('✅ YouTube cookies saved successfully via API');
+    res.json({ success: true, message: 'Cookies saved successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to write cookies: ' + err.message });
+  }
+});
+
 // Diagnostic status endpoint
 app.get('/api/status', (req, res) => {
   const ytdlpExists = fs.existsSync(YTDLP_PATH);
@@ -109,9 +148,14 @@ app.get('/api/status', (req, res) => {
   if (ytdlpExists) {
     try { ytdlpSize = fs.statSync(YTDLP_PATH).size; } catch (e) {}
   }
+  let hasCookies = false;
+  if (fs.existsSync(COOKIES_PATH)) {
+    try { hasCookies = fs.statSync(COOKIES_PATH).size > 20; } catch (e) {}
+  }
   res.json({
     status: 'ok',
-    version: '1.0.5-stable',
+    version: '1.0.6-bot-bypass',
+    hasCookies,
     platform: process.platform,
     ytdlp: { exists: ytdlpExists, path: YTDLP_PATH, size: ytdlpSize },
     ffmpeg: { exists: ffmpegExists, path: FFMPEG_PATH, dir: path.dirname(FFMPEG_PATH) }
@@ -188,7 +232,9 @@ app.post('/api/info', async (req, res) => {
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',
+    '--extractor-args', 'youtube:player_client=ios,android,mweb',
     '--ffmpeg-location', FFMPEG_PATH,
+    ...getCookieArgs(),
     url
   ];
 
@@ -212,8 +258,12 @@ app.post('/api/info', async (req, res) => {
   proc.on('close', (code) => {
     if (code !== 0) {
       console.error('yt-dlp error:', stderr);
+      let errMsg = 'Failed to extract video info. Verify the URL is valid and public.';
+      if (stderr && stderr.includes('Sign in to confirm you’re not a bot')) {
+        errMsg = 'YouTube requires authentication on cloud servers for this video. Use the Cloud Cookies button in the top menu or download using the local desktop app!';
+      }
       return res.status(500).json({
-        error: 'Failed to extract video info. Verify the URL is valid and public.',
+        error: errMsg,
         details: stderr ? stderr.slice(-300).trim() : 'Exited with code ' + code
       });
     }
@@ -290,8 +340,10 @@ app.post('/api/download', (req, res) => {
     '--no-warnings',
     '--no-check-certificates',
     '--no-abort-on-error',
+    '--extractor-args', 'youtube:player_client=ios,android,mweb',
     '--js-runtimes', `node:${process.execPath}`,
     '--ffmpeg-location', FFMPEG_PATH,
+    ...getCookieArgs(),
     '-o', outputTemplate
   ];
 
@@ -421,12 +473,16 @@ app.post('/api/download', (req, res) => {
       task.status = 'error';
       let errDetail = 'Download failed. Check the video link or restrictions.';
       if (stderrBuffer) {
-        const lines = stderrBuffer.split('\n').map(l => l.trim()).filter(Boolean);
-        const errorLine = lines.filter(l => l.toLowerCase().includes('error:')).pop();
-        if (errorLine) {
-          errDetail = errorLine.replace(/^ERROR:\s*/i, '').trim();
-        } else if (lines.length > 0) {
-          errDetail = lines[lines.length - 1];
+        if (stderrBuffer.includes('Sign in to confirm you’re not a bot')) {
+          errDetail = 'YouTube requires authentication on cloud servers for this video. Use the Cloud Cookies button in the top menu or download using the local desktop app!';
+        } else {
+          const lines = stderrBuffer.split('\n').map(l => l.trim()).filter(Boolean);
+          const errorLine = lines.filter(l => l.toLowerCase().includes('error:')).pop();
+          if (errorLine) {
+            errDetail = errorLine.replace(/^ERROR:\s*/i, '').trim();
+          } else if (lines.length > 0) {
+            errDetail = lines[lines.length - 1];
+          }
         }
       }
       task.error = errDetail;

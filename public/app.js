@@ -64,6 +64,16 @@
     transcriptPreview: document.getElementById('transcriptPreview'),
     transcriptText: document.getElementById('transcriptText'),
 
+    // Cookies Modal
+    navBtnCookies: document.getElementById('navBtnCookies'),
+    cookiesModal: document.getElementById('cookiesModal'),
+    btnCloseCookies: document.getElementById('btnCloseCookies'),
+    cookiesInput: document.getElementById('cookiesInput'),
+    btnPasteCookies: document.getElementById('btnPasteCookies'),
+    btnSaveCookies: document.getElementById('btnSaveCookies'),
+    cookieSpinner: document.getElementById('cookieSpinner'),
+    cookieStatusMsg: document.getElementById('cookieStatusMsg'),
+
     // View Switching
     navBtnStudio: document.getElementById('navBtnStudio'),
     navBtnAbout: document.getElementById('navBtnAbout'),
@@ -137,6 +147,60 @@
     DOM.summaryModal.addEventListener('click', (e) => {
       if (e.target === DOM.summaryModal) DOM.summaryModal.classList.remove('open');
     });
+
+    // Cloud Cookies Modal
+    if (DOM.navBtnCookies) {
+      DOM.navBtnCookies.addEventListener('click', () => {
+        DOM.cookiesModal.classList.add('open');
+      });
+    }
+    if (DOM.btnCloseCookies) {
+      DOM.btnCloseCookies.addEventListener('click', () => {
+        DOM.cookiesModal.classList.remove('open');
+      });
+    }
+    if (DOM.cookiesModal) {
+      DOM.cookiesModal.addEventListener('click', (e) => {
+        if (e.target === DOM.cookiesModal) DOM.cookiesModal.classList.remove('open');
+      });
+    }
+    if (DOM.btnPasteCookies) {
+      DOM.btnPasteCookies.addEventListener('click', async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text) DOM.cookiesInput.value = text;
+        } catch (e) {}
+      });
+    }
+    if (DOM.btnSaveCookies) {
+      DOM.btnSaveCookies.addEventListener('click', async () => {
+        const text = DOM.cookiesInput.value.trim();
+        if (!text) return;
+        DOM.cookieSpinner.style.display = 'inline-block';
+        try {
+          const res = await fetch('/api/cookies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cookies: text })
+          });
+          const d = await res.json();
+          if (res.ok) {
+            DOM.cookieStatusMsg.style.display = 'block';
+            DOM.cookieStatusMsg.style.color = '#10b981';
+            DOM.cookieStatusMsg.textContent = '✅ Cookies saved! You can now analyze and download.';
+            setTimeout(() => DOM.cookiesModal.classList.remove('open'), 1500);
+          } else {
+            throw new Error(d.error || 'Failed to save');
+          }
+        } catch (err) {
+          DOM.cookieStatusMsg.style.display = 'block';
+          DOM.cookieStatusMsg.style.color = '#ef4444';
+          DOM.cookieStatusMsg.textContent = '❌ ' + err.message;
+        } finally {
+          DOM.cookieSpinner.style.display = 'none';
+        }
+      });
+    }
 
     // Refresh history
     if (DOM.btnRefreshHistory) {
