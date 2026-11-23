@@ -139,14 +139,19 @@
     DOM.btnStartDownload.addEventListener('click', startDownload);
 
     // AI Summarize
-    DOM.btnSummarize.addEventListener('click', openAISummary);
-    DOM.btnCloseSummary.addEventListener('click', () => {
-      DOM.summaryModal.classList.remove('open');
-    });
-
-    DOM.summaryModal.addEventListener('click', (e) => {
-      if (e.target === DOM.summaryModal) DOM.summaryModal.classList.remove('open');
-    });
+    if (DOM.btnSummarize) {
+      DOM.btnSummarize.addEventListener('click', openAISummary);
+    }
+    if (DOM.btnCloseSummary) {
+      DOM.btnCloseSummary.addEventListener('click', () => {
+        if (DOM.summaryModal) DOM.summaryModal.classList.remove('open');
+      });
+    }
+    if (DOM.summaryModal) {
+      DOM.summaryModal.addEventListener('click', (e) => {
+        if (e.target === DOM.summaryModal) DOM.summaryModal.classList.remove('open');
+      });
+    }
 
     // Cloud Cookies Modal
     if (DOM.navBtnCookies) {
@@ -290,9 +295,25 @@
     // Adjust quality pill availability
     const q4k = document.getElementById('q4k');
     const q1080 = document.getElementById('q1080');
+    const q720 = document.getElementById('q720');
+    const q480 = document.getElementById('q480');
 
     if (q4k) q4k.style.display = data.qualities && data.qualities['4K'] ? 'inline-block' : 'none';
-    if (q1080) q1080.style.display = data.qualities && data.qualities['1080p'] ? 'inline-block' : 'inline-block';
+    if (q1080) q1080.style.display = data.qualities && data.qualities['1080p'] ? 'inline-block' : 'none';
+    if (q720) q720.style.display = data.qualities && data.qualities['720p'] ? 'inline-block' : 'none';
+    if (q480) q480.style.display = 'inline-block';
+
+    // Auto-select optimal available quality
+    let preferred = '1080p';
+    if (data.qualities && data.qualities['1080p']) preferred = '1080p';
+    else if (data.qualities && data.qualities['720p']) preferred = '720p';
+    else if (data.qualities && data.qualities['4K']) preferred = '4K';
+    else if (data.qualities && data.qualities['480p']) preferred = '480p';
+
+    selectedQuality = preferred;
+    DOM.qualityPills.forEach(p => {
+      p.classList.toggle('active', p.dataset.quality === preferred);
+    });
 
     DOM.previewSection.style.display = 'block';
     DOM.previewSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

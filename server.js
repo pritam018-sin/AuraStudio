@@ -228,11 +228,10 @@ app.post('/api/info', async (req, res) => {
 
   const args = [
     '--dump-single-json',
-    '--format', 'all',
     '--no-playlist',
     '--no-warnings',
     '--no-check-certificates',
-    '--extractor-args', 'youtube:player_client=ios,android,mweb',
+    '--js-runtimes', `node:${process.execPath}`,
     '--ffmpeg-location', FFMPEG_PATH,
     ...getCookieArgs(),
     url
@@ -276,12 +275,13 @@ app.post('/api/info', async (req, res) => {
       }
       const data = JSON.parse(stdout.slice(firstBrace, lastBrace + 1));
 
-      // Determine available qualities
+      // Determine available qualities (works for both 16:9 landscape and 9:16 portrait reels)
       const formats = data.formats || [];
-      const has4K = formats.some(f => f.height >= 2160);
-      const has1440p = formats.some(f => f.height >= 1440);
-      const has1080p = formats.some(f => f.height >= 1080);
-      const has720p = formats.some(f => f.height >= 720);
+      const has4K = formats.some(f => Math.min(f.height || 0, f.width || 0) >= 2160 || Math.max(f.height || 0, f.width || 0) >= 3840);
+      const has1440p = formats.some(f => Math.min(f.height || 0, f.width || 0) >= 1440 || Math.max(f.height || 0, f.width || 0) >= 2560);
+      const has1080p = formats.some(f => Math.min(f.height || 0, f.width || 0) >= 1080 || Math.max(f.height || 0, f.width || 0) >= 1920);
+      const has720p = formats.some(f => Math.min(f.height || 0, f.width || 0) >= 720 || Math.max(f.height || 0, f.width || 0) >= 1280);
+      const has480p = formats.some(f => Math.min(f.height || 0, f.width || 0) >= 480 || Math.max(f.height || 0, f.width || 0) >= 854) || formats.length > 0;
 
       // Subtitles check
       const subtitles = Object.keys(data.subtitles || {}).concat(Object.keys(data.automatic_captions || {}));
@@ -302,7 +302,7 @@ app.post('/api/info', async (req, res) => {
           '1440p': has1440p,
           '1080p': has1080p,
           '720p': has720p,
-          '480p': true,
+          '480p': has480p,
           'mp3': true
         },
         hasSubtitles: subtitles.length > 0,
@@ -340,7 +340,6 @@ app.post('/api/download', (req, res) => {
     '--no-warnings',
     '--no-check-certificates',
     '--no-abort-on-error',
-    '--extractor-args', 'youtube:player_client=ios,android,mweb',
     '--js-runtimes', `node:${process.execPath}`,
     '--ffmpeg-location', FFMPEG_PATH,
     ...getCookieArgs(),
@@ -354,13 +353,13 @@ app.post('/api/download', (req, res) => {
       '--audio-quality', '0'
     );
   } else {
-    // Video format selection with resilient fallbacks
+    // Video format selection with resilient fallbacks (handles both standard 16:9 & vertical 9:16 reels)
     let formatArg = 'bestvideo+bestaudio/best';
-    if (quality === '4K') formatArg = 'bestvideo[height<=2160]+bestaudio/best[height<=2160]/best';
-    else if (quality === '1440p') formatArg = 'bestvideo[height<=1440]+bestaudio/best[height<=1440]/best';
-    else if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best';
-    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best';
-    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best[height<=480]/best';
+    if (quality === '4K') formatArg = 'bestvideo[height<=?2160]+bestaudio/bestvideo[width<=?2160]+bestaudio/best';
+    else if (quality === '1440p') formatArg = 'bestvideo[height<=?1440]+bestaudio/bestvideo[width<=?1440]+bestaudio/best';
+    else if (quality === '1080p') formatArg = 'bestvideo[height<=?1080]+bestaudio/bestvideo[width<=?1080]+bestaudio/best[height<=?1080]/best[width<=?1080]/best';
+    else if (quality === '720p') formatArg = 'bestvideo[height<=?720]+bestaudio/bestvideo[width<=?720]+bestaudio/best[height<=?720]/best[width<=?720]/best';
+    else if (quality === '480p') formatArg = 'bestvideo[height<=?480]+bestaudio/bestvideo[width<=?480]+bestaudio/best[height<=?480]/best[width<=?480]/best';
 
     args.push(
       '-f', formatArg,
@@ -401,7 +400,14 @@ app.post('/api/download', (req, res) => {
       task.eta = match[4];
       task.status = 'downloading';
       broadcastProgress(taskId, task);
-    } else if (text.includes('[Merger]') || text.includes('[ExtractAudio]')) {
+    } else if (text.includes('[ExtractAudio] Destination:')) {
+      const fn = text.split('[ExtractAudio] Destination:')[1].trim().split(/[\r\n]+/)[0].trim();
+      task.filename = path.basename(fn);
+      task.filePath = fn;
+      task.status = 'processing';
+      task.percent = 98;
+      broadcastProgress(taskId, task);
+    } else if (text.includes('[Merger]') || text.includes('Merging formats into')) {
       const mergeMatch = text.match(/Merging formats into ["']?([^"'\r\n]+)["']?/);
       if (mergeMatch) {
         task.filename = path.basename(mergeMatch[1]);
@@ -410,15 +416,12 @@ app.post('/api/download', (req, res) => {
       task.status = 'processing';
       task.percent = 98;
       broadcastProgress(taskId, task);
-    } else if (text.includes('[ExtractAudio] Destination:')) {
-      const fn = text.split('[ExtractAudio] Destination:')[1].trim().split('\n')[0].trim();
-      task.filename = path.basename(fn);
-      task.filePath = fn;
+    } else if (text.includes('[ExtractAudio]')) {
       task.status = 'processing';
       task.percent = 98;
       broadcastProgress(taskId, task);
     } else if (text.includes('[download] Destination:')) {
-      const fn = text.split('[download] Destination:')[1].trim().split('\n')[0].trim();
+      const fn = text.split('[download] Destination:')[1].trim().split(/[\r\n]+/)[0].trim();
       task.filename = path.basename(fn);
       task.filePath = fn;
     }
@@ -622,7 +625,8 @@ app.post('/api/summarize', (req, res) => {
     '--sub-format', 'vtt',
     '--no-warnings',
     '--no-check-certificates',
-    '--extractor-args', 'youtube:player_client=android,ios,mweb,web',
+    '--js-runtimes', `node:${process.execPath}`,
+    ...getCookieArgs(),
     '-o', path.join(subTempDir, 'sub.%(ext)s'),
     url
   ];
